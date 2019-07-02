@@ -1,0 +1,13 @@
+
+termtosvg -c "fish" temp.svg
+
+ls
+
+ls poj-1000
+lj poj-1000.c
+lj poj-1000.py
+cd poj-1000-java
+lj Main.java
+
+
+

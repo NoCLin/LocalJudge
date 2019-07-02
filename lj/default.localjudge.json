@@ -1,0 +1,40 @@
+[
+  {
+    "name": "C",
+    "extensions": [
+      ".c"
+    ],
+    "dest": "${stem}${exe_if_win}",
+    "compile": "gcc ${src} -o ${dest}",
+    "run": "${dest}"
+  },
+  {
+    "name": "C++",
+    "extensions": [
+      ".cpp",
+      ".cxx",
+      ".cc"
+    ],
+    "dest": "${stem}${exe_if_win}",
+    "compile": "g++ ${src} -o ${dest}",
+    "run": "${dest}"
+  },
+  {
+    "name": "Python",
+    "extensions": [
+      ".py"
+    ],
+    "dest": "${stem}.pyc",
+    "compile": "python -c \"import py_compile; py_compile.compile('${src}','${dest}')\"",
+    "run": "python ${dest}"
+  },
+  {
+    "name": "Java",
+    "extensions": [
+      ".java"
+    ],
+    "dest": "Main.class",
+    "compile": "javac -J-Xms32m -J-Xmx256m Main.java",
+    "run": "java Main"
+  }
+]

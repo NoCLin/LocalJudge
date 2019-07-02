@@ -1,0 +1,4 @@
+PyInstaller
+flake8
+termtosvg
+pytest
