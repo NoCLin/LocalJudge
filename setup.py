@@ -23,6 +23,12 @@ setup(name="LocalJudge",
       ],
       packages=find_packages(),
       zip_safe=False,
+      classifiers=[
+          'Programming Language :: Python :: 3',
+      ],
+      package_data={
+          'lj': ['*.json'],
+      },
       entry_points={
           'console_scripts': [
               'lj = lj.lj:main',

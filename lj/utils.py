@@ -55,7 +55,7 @@ def load_options():
 
     else:
         logger.debug("config file not found!")
-        default_config_file = str(Path(__file__).parent / ".localjudge.json")
+        default_config_file = str(Path(__file__).parent / "default.localjudge.json")
         default_options = json.loads(read_file(default_config_file, "r"))
         with open(str(file.resolve()), "w") as f:
             json.dump(default_options, f, indent=4, ensure_ascii=False)
