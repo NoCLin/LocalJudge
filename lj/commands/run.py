@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 from lj.judger import do_compile
+from lj.utils import obj_json_dumps
 
 logger = logging.getLogger()
 
@@ -17,6 +18,8 @@ def lj_compile_and_run(args):
         run_with_console(compile_result.runnable)
         shutil.rmtree(compile_result.temp_dir)
         print("Removing " + compile_result.temp_dir)
+    else:
+        print(obj_json_dumps(compile_result, indent=2))
 
 
 def run_with_console(command):

@@ -28,6 +28,7 @@ logger = logging.getLogger()
 
 
 def explain_result(result):
+    # None 为不需要编译
     if result.compile.code is not None and result.compile.code != 0:
         print(colorful.red("Compile Error"))
         print(obj_json_dumps(result.compile, indent=2))
