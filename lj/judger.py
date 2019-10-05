@@ -1,4 +1,5 @@
 import logging
+import os
 import platform
 import subprocess
 from pathlib import Path
@@ -89,8 +90,8 @@ def do_compile(src) -> (int, str):
         "dest": None,
         "exe_if_win": ".exe" if platform.system() == "Windows" else ""
     }
-
-    params["dest"] = str((temp_dir / Template(dest_template).substitute(params)).resolve())
+    # 此时文件还不存在
+    params["dest"] = os.path.abspath(str(temp_dir / Template(dest_template).substitute(params)))
 
     if compile_cmd_template:
         compile_cmd = Template(compile_cmd_template).substitute(params)
@@ -102,7 +103,7 @@ def do_compile(src) -> (int, str):
         compile_result.stdout = stdout
         compile_result.code = code
 
-    compile_result.temp_dir = str(temp_dir.absolute())
+    compile_result.temp_dir = str(temp_dir.resolve())
     compile_result.runnable = Template(run_cmd_template).substitute(params)
     compile_result.params = params
 

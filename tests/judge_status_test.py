@@ -5,7 +5,7 @@ import unittest
 import shutil
 from pathlib import Path
 
-CASE_DIR = (Path(__file__).parent / "cases").resolve().absolute()
+CASE_DIR = (Path(__file__).parent / "cases").resolve()
 
 
 class LocalJudgeStatusTest(unittest.TestCase):  # 继承unittest.TestCase

@@ -5,7 +5,7 @@ import json
 
 from lj.judger import JudgeStatus
 
-PROB_DIR = (Path(__file__).parent / "problems").resolve().absolute()
+PROB_DIR = (Path(__file__).parent / "problems").resolve()
 
 
 def getstatusoutput(cmd):
