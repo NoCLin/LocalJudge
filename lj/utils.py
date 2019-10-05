@@ -1,4 +1,5 @@
 # -*-coding:utf-8-*-
+import os
 import sys
 import datetime
 import json
@@ -57,7 +58,8 @@ def load_options():
         logger.debug("config file not found!")
         default_config_file = str(Path(__file__).parent / "default.localjudge.json")
         default_options = json.loads(read_file(default_config_file, "r"))
-        with open(str(file.resolve()), "w") as f:
+        # path.resolve() will raise FileNotFoundError on Py 3.5.7 if file doesn't exist.
+        with open(os.path.abspath(str(file)), "w") as f:
             json.dump(default_options, f, indent=4, ensure_ascii=False)
         return default_options
 
