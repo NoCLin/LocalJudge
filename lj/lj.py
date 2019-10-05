@@ -30,7 +30,7 @@ logger = logging.getLogger()
 def explain_result(result):
     if result.compile.code is not None and result.compile.code != 0:
         print(colorful.red("Compile Error"))
-        print(json.dumps(result.compile, indent=2, ensure_ascii=False))
+        print(obj_json_dumps(result.compile, indent=2))
         exit()
 
     status_count = {
