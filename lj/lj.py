@@ -138,8 +138,8 @@ def main():
     # 尝试获取文件，可忽略后缀
     def get_file(file, not_exists_ok=False):
         if file.is_dir():
-            # 自动搜索后缀
-            file_list = [i for i in file.parent.glob(file.stem + ".*")]
+            # 自动搜索后缀，忽略 .class 等非源文件
+            file_list = [i for i in file.parent.glob(file.stem + ".*") if i.suffix not in [".class"]]
             if len(file_list):
                 return file_list[0]
             else:
