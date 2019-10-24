@@ -1,3 +1,4 @@
+// poj 380K	16MS
 #include <stdio.h>
 int main()
 {
