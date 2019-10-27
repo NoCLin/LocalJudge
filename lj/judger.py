@@ -1,17 +1,33 @@
+# -*-coding:utf-8-*-
+
 import logging
 import os
-import platform
+import sys
+import shlex
+import json
 import subprocess
+import tempfile
+import traceback
+
+import threading
+from io import StringIO
 from pathlib import Path
 from string import Template
 
+
+import psutil
+
 from lj.utils import (get_now_ms,
+                      print_and_exit,
                       equals_ignore_presentation_error,
                       ignore_last_newline,
                       get_temp_dir,
-                      load_options)
+                      IS_WINDOWS, IS_LINUX, IS_MACOS,
+                      read_file, get_memory_by_psutil)
 
-logger = logging.getLogger()
+logger = logging.getLogger("lj")
+
+DEFAULT_STDOUT_LIMIT = 1024 * 1024 * 32
 
 
 class JudgeStatus:
@@ -61,13 +77,30 @@ class JudgeResult:
         self.output_len = None
 
 
+def load_options():
+    logging.debug("loading options")
+    file = Path.home() / ".localjudge.json"
+    if file.exists():
+        try:
+            return json.loads(read_file(str(file.resolve()), "r"))
+        except json.JSONDecodeError:
+            print(str(file) + " parse failed.")
+            exit()
+
+    else:
+        logger.debug("config file not found!")
+        default_config_file = str(Path(__file__).parent / "default.localjudge.json")
+        default_options = json.loads(read_file(default_config_file, "r"))
+        # path.resolve() will raise FileNotFoundError on Py 3.5.7 if file doesn't exist.
+        with open(os.path.abspath(str(file)), "w") as f:
+            json.dump(default_options, f, indent=4, ensure_ascii=False)
+        return default_options
+
+
 def get_lang_options_from_suffix(suffix):
     options = load_options()
     try:
-        lang_options = [lang for lang in options if suffix in lang.get("extensions", [])][0]
-        logging.debug("language options")
-        logging.debug(lang_options)
-        return lang_options
+        return [lang for lang in options if suffix in lang.get("extensions", [])][0]
     except IndexError:
         print("unsupported suffix: " + suffix)
         exit()
@@ -77,24 +110,26 @@ def do_compile(src) -> (int, str):
     src_path = Path(src).resolve()
     temp_dir = get_temp_dir(src)
     lang_options = get_lang_options_from_suffix(src_path.suffix)
+    logging.debug("language options:")
+    logging.debug(lang_options)
 
     compile_result = CompileResult()
-    compile_cmd_template = lang_options.get("compile")
-
-    run_cmd_template = lang_options.get("run")
-    dest_template = lang_options.get("dest")
+    tpl_compile = lang_options.get("compile")
+    tpl_runnable = lang_options.get("run")
+    tpl_dest = lang_options.get("dest")
 
     params = {
         "src": str(src_path),
+        "temp_dir": str(temp_dir),
         "stem": src_path.stem,
         "dest": None,
-        "exe_if_win": ".exe" if platform.system() == "Windows" else ""
+        "exe_if_win": ".exe" if IS_WINDOWS else ""
     }
     # 此时文件还不存在
-    params["dest"] = os.path.abspath(str(temp_dir / Template(dest_template).substitute(params)))
+    params["dest"] = os.path.abspath(str(temp_dir / Template(tpl_dest).substitute(params)))
 
-    if compile_cmd_template:
-        compile_cmd = Template(compile_cmd_template).substitute(params)
+    if tpl_compile:
+        compile_cmd = Template(tpl_compile).substitute(params)
 
         logger.debug("compile command: %s" % compile_cmd)
         code, stdout = subprocess.getstatusoutput(compile_cmd)
@@ -104,55 +139,136 @@ def do_compile(src) -> (int, str):
         compile_result.code = code
 
     compile_result.temp_dir = str(temp_dir.resolve())
-    compile_result.runnable = Template(run_cmd_template).substitute(params)
+    compile_result.runnable = Template(tpl_runnable).substitute(params)
     compile_result.params = params
 
     return compile_result
 
 
-def do_judge_run(command, stdin=None, expected_out=None, time_limit=None, memory_limit=None, output_limit=1024,
+def do_judge_run(command, stdin="", expected_out="", time_limit=None, memory_limit=None,
                  case_index=None):
     logger.debug("run command: %s" % command)
     logger.debug("stdin: %s" % stdin)
     logger.debug("expected_out: %s" % expected_out)
+    logger.debug("time limit: %s" % time_limit)
+    logger.debug("memory limit: %s" % memory_limit)
 
     result = JudgeResult()
     result.command = command
+    result.code = -1
     result.input = stdin
+    result.output = ""
     result.expected_output = expected_out
     result.time_limit = time_limit
     result.memory_limit = memory_limit
     result.case_index = case_index
 
-    t1 = get_now_ms()
-    logger.debug("t1: %d" % t1)
-    ps = subprocess.Popen(command.split(), shell=False,
-                          stdin=subprocess.PIPE,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE)
+    # Linux preexec_fn / ulimit
+    # MacOS polling psutil
+    # Windows winc --memory or polling psutil
+
+    # resource.setrlimit()
+    # https://stackoverflow.com/questions/12965023/python-subprocess-popen-communicate-equivalent-to-popen-stdout-read?r=SearchResults
+
+    # stdout_fp = tempfile.NamedTemporaryFile("w+", encoding="utf-8")
+    stdout_fp = open("tmp.txt","w+",encoding="utf-8")
+    # print(stdout_fp.name)
+    p = subprocess.Popen(shlex.split(command, posix=not IS_WINDOWS), shell=False,
+                         universal_newlines=True,
+                         stdin=subprocess.PIPE,
+                         stdout=stdout_fp,
+                         # stderr=sys.stderr,
+                         )
+
+    # TODO: ole check
+    tle_kill = ole_kill = mle_kill = False
+    mle_check = True
+    stdout_len = 0
+    max_memory_used = -1
+
+    def memory_monitor():
+
+        nonlocal p, max_memory_used, mle_kill
+        try:
+            psp = psutil.Process(pid=p.pid)
+            while mle_check:
+                mem = get_memory_by_psutil(psp)
+                # mem = get_memory_by_ps(p.pid) * 1024
+
+                if mem > max_memory_used:
+                    logger.debug("polling memory of (%s): %s bytes" % (p.pid, mem))
+
+                    max_memory_used = mem
+                    if memory_limit and max_memory_used > memory_limit:
+                        logger.debug("reach limit %s %s" % (max_memory_used, memory_limit))
+                        mle_kill = True
+                        p.kill()
+        except Exception as e:
+            logging.debug("get memory failed")
+            logging.debug(e)
+
+    def output_monitor():
+        pass
+
+    mle_check_thread = threading.Thread(target=memory_monitor, args=())
+    mle_check_thread.start()
+
     t2 = get_now_ms()
-    logger.debug("t2: %d t2-t1: %d" % (t2, t2 - t1))
 
-    # FIXME: 不要直接使用communicate，否则不好处理内存与时间占用
-    stdout, _ = ps.communicate(stdin.encode())
+    try:
 
-    # TODO: 处理 Runtime Error 等
+        if time_limit:
+            def timeout_kill():
+                nonlocal tle_kill  # 不需要再抛异常了
+                tle_kill = True
+                p.kill()
+
+            # timer = Timer(time_limit / 1000.0, timeout_kill)
+            # timer.start()
+        _, _ = p.communicate(stdin
+                             # , timeout=time_limit / 1000.0 if time_limit else None
+                             )
+        stdout_fp.seek(0)
+        result.output = stdout_fp.read()
+    except subprocess.TimeoutExpired:
+        tle_kill = True
+    except Exception as e:
+        logger.error(e)
+        traceback.print_exc()
+
+        print_and_exit(-1, "System Error. Please submit an issue.")
+    finally:
+        stdout_fp.close()
+        if time_limit:
+            timer.cancel()
+        mle_check = False
+        # p.stdout.close()
+        # p.stderr.close()
+
+    result.code = p.poll()
 
     t3 = get_now_ms()
-    logger.debug("t3: %d t3-t2: %d t3-t1: %d" % (t3, t3 - t2, t3 - t1))
+    logger.debug("t3: %d t3-t2: %d" % (t3, t3 - t2))
+    logger.debug("stdout: %s" % result.output)
+    logger.debug("code: %s" % result.code)
 
-    result.time_used = t3 - t1
-    result.memory_used = 0
-    result.output = stdout.decode()
+    result.time_used = t3 - t2
+    result.memory_used = max_memory_used
 
-    result.code = 0
-    if result.code != 0:
-        result.status = JudgeStatus.RE
+    if tle_kill:  # 超时kill code 非0 必须在判RE前返回
+        result.status = JudgeStatus.TLE
         return result
 
-    if result.memory_limit is not None \
-            and result.memory_used > memory_limit:
+    if mle_kill:
         result.status = JudgeStatus.MLE
+        return result
+
+    if ole_kill:
+        result.status = JudgeStatus.OLE
+        return result
+
+    if result.code != 0:
+        result.status = JudgeStatus.RE
         return result
 
     if result.time_limit is not None \

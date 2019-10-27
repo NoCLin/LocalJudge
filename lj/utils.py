@@ -1,17 +1,31 @@
 # -*-coding:utf-8-*-
 import os
+import subprocess
 import sys
+import time
 import datetime
 import json
 import logging
 import re
-import time
+
 from pathlib import Path
 
 import jsonpickle
 
-logger = logging.getLogger()
+from lj.vendors.human_bytes_converter import human2bytes
+
+logger = logging.getLogger("lj")
+
 IS_WINDOWS = sys.platform == "win32"
+IS_MACOS = sys.platform == "darwin"
+IS_LINUX = sys.platform == "linux"
+
+
+def print_and_exit(code, text):
+    if hasattr(sys, "stdout_"):
+        sys.stdout = sys.stdout_
+    print(text)
+    sys.exit(code)
 
 
 # ref: https://stackoverflow.com/questions/4836710/does-python-have-a-built-in-function-for-string-natural-sort
@@ -42,26 +56,6 @@ def get_temp_dir(src) -> Path:
     temp_dir = src_path.parent / ".local_judge" / (src_path.stem + "_" + timestamp)
     temp_dir.mkdir(parents=True, exist_ok=True)
     return temp_dir.resolve()
-
-
-def load_options():
-    logging.debug("loading options")
-    file = Path.home() / ".localjudge.json"
-    if file.exists():
-        try:
-            return json.loads(read_file(str(file.resolve()), "r"))
-        except json.JSONDecodeError:
-            print(str(file) + " parse failed.")
-            exit()
-
-    else:
-        logger.debug("config file not found!")
-        default_config_file = str(Path(__file__).parent / "default.localjudge.json")
-        default_options = json.loads(read_file(default_config_file, "r"))
-        # path.resolve() will raise FileNotFoundError on Py 3.5.7 if file doesn't exist.
-        with open(os.path.abspath(str(file)), "w") as f:
-            json.dump(default_options, f, indent=4, ensure_ascii=False)
-        return default_options
 
 
 def get_cases(data_dir):
@@ -101,3 +95,71 @@ def obj_json_dumps(obj, indent=None):
 
 def diff_print_colored(source, dest):
     pass
+
+
+def bytes_to_string():
+    pass
+
+
+def string_to_ms(size_str):
+    """
+        >>> string_to_ms("1.1")
+        1.1
+        >>> string_to_ms("1S")
+        1000.0
+        >>> string_to_ms("1ms")
+        1.0
+        >>> string_to_ms("1.1ms")
+        1.1
+    """
+
+    if size_str[-2:].upper() == "MS":
+        return float(size_str[:-2])
+
+    if size_str[-1].upper() == "S":
+        return 1000 * float(size_str[:-1])
+    return float(size_str)
+
+
+def get_time_and_memory_limit(source_code):
+    """
+    :param source_code:
+    :return: time_limit(ms) , memory_limit(bytes)
+
+    >>> code  = '/**' +  os.linesep
+    >>> code += ' * Time limit: 1000MS'+ os.linesep
+    >>> code += ' * memoryLimit：10000K'+ os.linesep
+    >>> code += '**/'
+    >>> get_time_and_memory_limit(code)
+    (1000.0, 10240000)
+    >>> code  = '#time limit: 1s'+os.linesep
+    >>> code += '#memorylimit: 1m'+os.linesep
+    >>> get_time_and_memory_limit(code)
+    (1000.0, 1048576)
+    """
+    search1 = re.search(r'[Tt]ime.?[Ll]imit.?[:：](.*)\n', source_code, re.M)
+    tl = None
+    ml = None
+    if search1:
+        tl = search1.group(1).strip()
+        tl = string_to_ms(tl)
+    search2 = re.search(r'[Mm]emory.?[Ll]imit.?[:：](.*)\n', source_code, re.M)
+    if search2:
+        ml = search2.group(1).strip()
+        ml = human2bytes(ml.upper())
+        ml = ml
+
+    return tl, ml
+
+
+def get_memory_by_ps(pid):
+    # windows powershell -Command "Get-Process"
+    out = subprocess.getoutput("ps -o rss -p %s" % pid).strip(" RS\n")
+    return 0 if out == "" else int(out)
+
+
+def get_memory_by_psutil(p):
+    try:
+        return p.memory_info().rss
+    except:
+        return 0

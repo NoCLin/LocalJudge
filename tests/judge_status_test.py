@@ -5,10 +5,11 @@ import unittest
 import shutil
 from pathlib import Path
 
-CASE_DIR = (Path(__file__).parent / "cases").resolve()
+CODE_DIR = (Path(__file__).parent / "code").resolve()
+POJ_1000_DIR = CODE_DIR / "poj-1000"
 
 
-class LocalJudgeStatusTest(unittest.TestCase):  # 继承unittest.TestCase
+class JudgeStatusTest(unittest.TestCase):  # 继承unittest.TestCase
     def tearDown(self):
         pass
         print("=" * 10)
@@ -22,45 +23,58 @@ class LocalJudgeStatusTest(unittest.TestCase):  # 继承unittest.TestCase
 
     @classmethod
     def tearDownClass(cls):
-        directory = str(CASE_DIR / ".local_judge")
-        print("removing " + directory)
-        shutil.rmtree(directory, onerror=print)
+        tmp = POJ_1000_DIR / ".local_judge"
+        if tmp.is_dir():
+            directory = str(tmp)
+            print("removing " + directory)
+            shutil.rmtree(directory, onerror=print)
 
-    def assert_status(self, src, status, time_limit=None, memory_limit=None):
+    def assert_status_poj_1000(self, src, status, time_limit=None, memory_limit=None):
         compile_result = do_compile(src)
-        self.assertEqual(0, compile_result.code)
+        self.assertEqual(0, compile_result.code, compile_result.stdout)
         stdin = '1 2'
         expected_out = '3'
         judge_result = do_judge_run(compile_result.runnable,
                                     stdin=stdin,
                                     expected_out=expected_out,
-                                    time_limit=None,
-                                    memory_limit=None
+                                    time_limit=time_limit,
+                                    memory_limit=memory_limit
                                     )
-        print(compile_result.params["src"])
-        print(obj_json_dumps(judge_result))
         self.assertEqual(status, judge_result.status)
+        return judge_result
 
     def test_AC(self):
-        self.assert_status(CASE_DIR / "AC.cpp", JudgeStatus.AC)
+        self.assert_status_poj_1000(POJ_1000_DIR / "poj-1000.c", JudgeStatus.AC)
 
     def test_WA(self):
-        self.assert_status(CASE_DIR / "WA.cpp", JudgeStatus.WA)
+        self.assert_status_poj_1000(POJ_1000_DIR / "WA.cpp", JudgeStatus.WA)
+
+    def test_RE(self):
+        self.assert_status_poj_1000(POJ_1000_DIR / "RE.cpp", JudgeStatus.RE)
 
     def test_CE(self):
-        compile_result = do_compile(CASE_DIR / "CE.cpp")
-        print(compile_result.params["src"])
-        print(obj_json_dumps(compile_result))
+        compile_result = do_compile(POJ_1000_DIR / "CE.cpp")
         self.assertNotEqual(0, compile_result.code)
 
     def test_MLE(self):
-        pass
+        path_1m = POJ_1000_DIR / "memory-MLE-1M-limit-1M.cpp"
+        path_max = POJ_1000_DIR / "memory-MLE-max-limit-1M.cpp"
+
+        # NOTE: windows path_1M rss: 5341184
+        self.assert_status_poj_1000(path_1m, JudgeStatus.AC, memory_limit=6341184, )
+        self.assert_status_poj_1000(path_1m, JudgeStatus.MLE, memory_limit=1024 * 1024, )
+        self.assert_status_poj_1000(path_max, JudgeStatus.MLE, memory_limit=2 * 1024 * 1024, )
 
     def test_OLE(self):
         pass
 
     def test_TLE(self):
-        pass
+        path_1s = POJ_1000_DIR / "time-TLE-1s-limit-1s.cpp"
+        path_endless = POJ_1000_DIR / "time-TLE-endless-limit-1s.cpp"
+
+        self.assert_status_poj_1000(path_1s, JudgeStatus.TLE, time_limit=999.9, )
+        self.assert_status_poj_1000(path_1s, JudgeStatus.AC, time_limit=1500.1, )
+        self.assert_status_poj_1000(path_endless, JudgeStatus.TLE, time_limit=1, )
 
 
 if __name__ == '__main__':

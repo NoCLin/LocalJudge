@@ -1,14 +1,15 @@
 # -*-coding:utf-8-*-
 import argparse
 import logging
+import shlex
 import shutil
 import subprocess
 import sys
 
 from lj.judger import do_compile
-from lj.utils import obj_json_dumps
+from lj.utils import obj_json_dumps, IS_WINDOWS
 
-logger = logging.getLogger()
+logger = logging.getLogger("lj")
 
 
 def lj_compile_and_run(args):
@@ -20,19 +21,21 @@ def lj_compile_and_run(args):
         print("Removing " + compile_result.temp_dir)
     else:
         print(obj_json_dumps(compile_result, indent=2))
+        print("Compile Error:\n")
+        print(compile_result.stdout)
 
 
 def run_with_console(command):
     print("Running %s" % command)
+
+    proc = subprocess.Popen(shlex.split(command, posix=not IS_WINDOWS), shell=False, stdin=sys.stdin, stdout=sys.stdout)
+    print("PID: %d" % proc.pid)
     print("-" * 20)
-    # 如果文件名含有空格，用户必须输入引号
-    proc = subprocess.Popen(command.split(), shell=False, stdin=sys.stdin, stdout=sys.stdout)
     try:
         while proc.poll() is None:
             pass
     except KeyboardInterrupt:
         pass
-
     print()
     print("-" * 20)
     print("Process Exit Code: %s" % (str(proc.returncode)))
