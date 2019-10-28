@@ -22,8 +22,6 @@ IS_LINUX = sys.platform == "linux"
 
 
 def print_and_exit(code, text):
-    if hasattr(sys, "stdout_"):
-        sys.stdout = sys.stdout_
     print(text)
     sys.exit(code)
 

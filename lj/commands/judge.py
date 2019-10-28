@@ -1,11 +1,10 @@
 # -*-coding:utf-8-*-
 import collections
 import logging
-import sys
+import warnings
 from pathlib import Path
 
 import colorful
-from prettytable import PrettyTable
 
 from lj.judger import do_judge_run, do_compile, JudgeStatus, JudgeResultSet
 from lj.utils import (
@@ -19,11 +18,13 @@ from lj.vendors.simplediff import diff
 
 logger = logging.getLogger("lj")
 
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    from prettytable import PrettyTable
+
 
 def explain_result(result, json=False):
     if json:
-        if hasattr(sys, "stdout_"):
-            sys.stdout = sys.stdout_
         print(obj_json_dumps(result, indent=2))
         return
     # TODO: 实时展示judge 结果
@@ -127,13 +128,7 @@ def explain_result(result, json=False):
 
 
 def lj_judge(args):
-    if args.json:
-        # 临时屏蔽所有stdout输出
-        # sys.stdout_ = sys.stdout
-        # sys.stdout = None
-        pass
     src = args.src
-
     case_index = args.case
 
     result = JudgeResultSet()
@@ -204,8 +199,6 @@ def lj_judge(args):
             logger.error(e)
 
     logger.info("result:\n%s" % obj_json_dumps(result, indent=2))
-
-    exit(0)
 
 
 if __name__ == '__main__':

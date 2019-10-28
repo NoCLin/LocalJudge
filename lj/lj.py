@@ -18,7 +18,9 @@ logger = logging.getLogger("lj")
 logger.setLevel(logging.INFO)
 
 
-def main():
+def main(argv=None):
+    if argv:
+        sys.argv = argv
     parser = argparse.ArgumentParser(description="Local Judge")
     parser.add_argument("command", nargs="?", default="judge", help="command")
     parser.add_argument('src', help="source file")
