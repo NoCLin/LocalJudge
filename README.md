@@ -15,6 +15,7 @@ Features：
 - 自动输入多组数据
 - 自动对比输出结果
 - 保留评测日志[未完成]
+- OJ 出题人验题
 
 > 刷题时，由于每个项目只能指定一个入口，每道题目都需要新建一个项目很繁琐，
 > LocalJudge提供`lj run hello.c` 或 `ljr hello.c`直接编译运行，
@@ -28,10 +29,11 @@ Features：
 pip install --upgrade LocalJudge
 ```
 
+> 请确保您的Python版本 >= 3.5
+
 ## 使用截图
 
-<img src="./screenshots/1.svg">
-
+![使用截图](./screenshots/1.svg)
 
 ## 使用方法
 
@@ -43,9 +45,9 @@ pip install --upgrade LocalJudge
 
 1. 创建项目
 
-`lj create poj-1000.c`
+执行命令 `lj create poj-1000.c` 会自动创建如下所示项目文件。
 
-项目目录结构如下：
+约定的项目目录结构如下：
 
 ```
 .
@@ -56,7 +58,7 @@ pip install --upgrade LocalJudge
 │   ├── 2.out
 │   ├── 3.in
 │   ├── 3.out
-│   ├── README.md 问题描述文件
+│   ├── README.md 问题描述文件(非必需，仅供记录
 └── poj-1000.c 代码文件
 ```
 

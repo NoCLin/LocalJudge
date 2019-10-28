@@ -28,7 +28,8 @@ def lj_compile_and_run(args):
 def run_with_console(command):
     print("Running %s" % command)
 
-    proc = subprocess.Popen(shlex.split(command, posix=not IS_WINDOWS), shell=False, stdin=sys.stdin, stdout=sys.stdout)
+    proc = subprocess.Popen(shlex.split(command, posix=not IS_WINDOWS), shell=False,
+                            stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
     print("PID: %d" % proc.pid)
     print("-" * 20)
     try:

@@ -2,8 +2,11 @@
 #include <unistd.h>
 using namespace std;
 /**
- * Memory Limit: 2M
- * POJ  Memory: 1716K		Time: 0MS
+ * Memory Limit: 5M
+ * POJ:
+ * macOS  : 1018.07ms |     1.8 M
+ * Windows: 1104.18ms |     3.6 M
+ * Linux  : 1102.88ms |     3.8 M
 **/
 
 int main() {

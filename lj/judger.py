@@ -1,19 +1,17 @@
 # -*-coding:utf-8-*-
 
-import logging
+
 import os
-import sys
 import shlex
 import json
 import subprocess
 import tempfile
-import traceback
-
 import threading
-from io import StringIO
+import traceback
+import logging
+
 from pathlib import Path
 from string import Template
-
 
 import psutil
 
@@ -22,8 +20,7 @@ from lj.utils import (get_now_ms,
                       equals_ignore_presentation_error,
                       ignore_last_newline,
                       get_temp_dir,
-                      IS_WINDOWS, IS_LINUX, IS_MACOS,
-                      read_file, get_memory_by_psutil)
+                      IS_WINDOWS, read_file, get_memory_by_psutil)
 
 logger = logging.getLogger("lj")
 
@@ -78,7 +75,7 @@ class JudgeResult:
 
 
 def load_options():
-    logging.debug("loading options")
+    logger.debug("loading options")
     file = Path.home() / ".localjudge.json"
     if file.exists():
         try:
@@ -110,8 +107,8 @@ def do_compile(src) -> (int, str):
     src_path = Path(src).resolve()
     temp_dir = get_temp_dir(src)
     lang_options = get_lang_options_from_suffix(src_path.suffix)
-    logging.debug("language options:")
-    logging.debug(lang_options)
+    logger.debug("language options:")
+    logger.debug(lang_options)
 
     compile_result = CompileResult()
     tpl_compile = lang_options.get("compile")
@@ -170,21 +167,19 @@ def do_judge_run(command, stdin="", expected_out="", time_limit=None, memory_lim
     # resource.setrlimit()
     # https://stackoverflow.com/questions/12965023/python-subprocess-popen-communicate-equivalent-to-popen-stdout-read?r=SearchResults
 
-    # stdout_fp = tempfile.NamedTemporaryFile("w+", encoding="utf-8")
-    stdout_fp = open("tmp.txt","w+",encoding="utf-8")
-    # print(stdout_fp.name)
+    stdout_fp = tempfile.NamedTemporaryFile("w+", encoding="utf-8")
     p = subprocess.Popen(shlex.split(command, posix=not IS_WINDOWS), shell=False,
                          universal_newlines=True,
                          stdin=subprocess.PIPE,
                          stdout=stdout_fp,
-                         # stderr=sys.stderr,
+                         stderr=subprocess.STDOUT,
                          )
 
     # TODO: ole check
     tle_kill = ole_kill = mle_kill = False
     mle_check = True
-    stdout_len = 0
-    max_memory_used = -1
+
+    max_memory_used = 0
 
     def memory_monitor():
 
@@ -204,8 +199,8 @@ def do_judge_run(command, stdin="", expected_out="", time_limit=None, memory_lim
                         mle_kill = True
                         p.kill()
         except Exception as e:
-            logging.debug("get memory failed")
-            logging.debug(e)
+            logger.debug("get memory failed")
+            logger.debug(e)
 
     def output_monitor():
         pass
@@ -216,21 +211,14 @@ def do_judge_run(command, stdin="", expected_out="", time_limit=None, memory_lim
     t2 = get_now_ms()
 
     try:
-
-        if time_limit:
-            def timeout_kill():
-                nonlocal tle_kill  # 不需要再抛异常了
-                tle_kill = True
-                p.kill()
-
-            # timer = Timer(time_limit / 1000.0, timeout_kill)
-            # timer.start()
-        _, _ = p.communicate(stdin
-                             # , timeout=time_limit / 1000.0 if time_limit else None
+        _, _ = p.communicate(stdin,
+                             timeout=time_limit / 1000.0 if time_limit else None
                              )
         stdout_fp.seek(0)
         result.output = stdout_fp.read()
     except subprocess.TimeoutExpired:
+        p.kill()
+        p.kill()
         tle_kill = True
     except Exception as e:
         logger.error(e)
@@ -239,11 +227,7 @@ def do_judge_run(command, stdin="", expected_out="", time_limit=None, memory_lim
         print_and_exit(-1, "System Error. Please submit an issue.")
     finally:
         stdout_fp.close()
-        if time_limit:
-            timer.cancel()
         mle_check = False
-        # p.stdout.close()
-        # p.stderr.close()
 
     result.code = p.poll()
 
@@ -254,6 +238,7 @@ def do_judge_run(command, stdin="", expected_out="", time_limit=None, memory_lim
 
     result.time_used = t3 - t2
     result.memory_used = max_memory_used
+    result.output_len = len(result.output)
 
     if tle_kill:  # 超时kill code 非0 必须在判RE前返回
         result.status = JudgeStatus.TLE

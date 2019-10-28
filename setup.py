@@ -1,3 +1,4 @@
+# -*-coding:utf-8-*-
 from distutils.core import setup
 
 from setuptools import find_packages
@@ -17,9 +18,10 @@ setup(name="LocalJudge",
       url="https://github.com/NoCLin/LocalJudge",
       license="MIT Licence",
       install_requires=[
+          'psutil',
           'colorful>=0.5.0',
           'prettytable',
-          'jsonpickle'
+          'jsonpickle',
       ],
       packages=find_packages(),
       zip_safe=False,

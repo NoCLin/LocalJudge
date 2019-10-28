@@ -5,30 +5,17 @@ import sys
 from pathlib import Path
 import argparse
 
-from io import StringIO
-
 from lj.commands.clean import lj_clean
 from lj.commands.create import lj_create
 from lj.commands.judge import lj_judge
 from lj.commands.show import lj_show
 from lj.commands.run import lj_compile_and_run
-from lj.utils import print_and_exit
-from lj import globalvar
+from lj.utils import print_and_exit, get_temp_dir
 
 log_format = '%(asctime)s [%(filename)s:%(lineno)d] [%(levelname)s] %(message)s'
-
-tmp_log_stream = StringIO()
-tmp_log_handler = logging.StreamHandler(tmp_log_stream)
-
-logging.basicConfig(level=logging.INFO,
-                    format=log_format,
-                    handlers=[tmp_log_handler]
-                    )
-
+logging.basicConfig(handlers=[])
 logger = logging.getLogger("lj")
-
-globalvar.set("tmp_log_stream", tmp_log_stream)
-globalvar.set("tmp_log_handler", tmp_log_handler)
+logger.setLevel(logging.INFO)
 
 
 def main():
@@ -49,11 +36,10 @@ def main():
 
     if args.debug:
         logger.setLevel(logging.DEBUG)
-        handler = logging.StreamHandler(sys.stderr)
+        handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(logging.Formatter(log_format))
         logger.addHandler(handler)
-
-    logger.debug("raw args: %s" % args)
+        logger.debug("raw args: %s" % args)
 
     # 尝试获取文件，可忽略后缀
     def try_get_file(file, not_exists_ok=False):
@@ -81,6 +67,15 @@ def main():
         print_and_exit(-1, 'sub command %s is invalid.' % args.command)
 
     args.src = try_get_file(Path(args.src), not_exists_ok=args.command == "create")
+
+    tmp_dir = get_temp_dir(args.src)
+    logger.debug(Path(args.src).stem)
+    log_file = tmp_dir / ("%s.log" % Path(args.src).stem)
+
+    log_file_handler = logging.FileHandler(str(log_file))
+    log_file_handler.setFormatter(logging.Formatter(log_format))
+    logger.addHandler(log_file_handler)
+    logger.debug("logging path: %s" % log_file)
     logger.debug("args: %s" % args)
     sub_func(args)
 

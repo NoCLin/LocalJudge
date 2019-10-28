@@ -1,8 +1,6 @@
 from lj.judger import do_compile, do_judge_run, JudgeStatus
-from lj.utils import obj_json_dumps
 
 import unittest
-import shutil
 from pathlib import Path
 
 CODE_DIR = (Path(__file__).parent / "code").resolve()
@@ -23,11 +21,7 @@ class JudgeStatusTest(unittest.TestCase):  # 继承unittest.TestCase
 
     @classmethod
     def tearDownClass(cls):
-        tmp = POJ_1000_DIR / ".local_judge"
-        if tmp.is_dir():
-            directory = str(tmp)
-            print("removing " + directory)
-            shutil.rmtree(directory, onerror=print)
+        pass
 
     def assert_status_poj_1000(self, src, status, time_limit=None, memory_limit=None):
         compile_result = do_compile(src)
@@ -74,7 +68,7 @@ class JudgeStatusTest(unittest.TestCase):  # 继承unittest.TestCase
 
         self.assert_status_poj_1000(path_1s, JudgeStatus.TLE, time_limit=999.9, )
         self.assert_status_poj_1000(path_1s, JudgeStatus.AC, time_limit=1500.1, )
-        self.assert_status_poj_1000(path_endless, JudgeStatus.TLE, time_limit=1, )
+        self.assert_status_poj_1000(path_endless, JudgeStatus.TLE, time_limit=100, )
 
 
 if __name__ == '__main__':

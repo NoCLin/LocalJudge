@@ -89,7 +89,6 @@ class CommandLineTest(unittest.TestCase):
                     "-eo", str(eout_file)]
         print(" ".join(commands))
         code, data = getstatusoutput(commands, cwd=POJ_1000_DIR_STR)
-        print("done")
         self.assertEqual(0, code, data)
         obj = json.loads(data)
         self.assertEqual(0, obj["compile"]["code"], obj)
@@ -97,12 +96,15 @@ class CommandLineTest(unittest.TestCase):
 
     def test_TLE_limit_in_src(self):
         # 详细测试在 judge_status_test.py 中
-
         self.check_lj_json_status_poj_1000("time-AC-1s-limit-2s.cpp", JudgeStatus.AC)
         self.check_lj_json_status_poj_1000("time-TLE-1s-limit-1s.cpp", JudgeStatus.TLE)
         self.check_lj_json_status_poj_1000("time-TLE-endless-limit-1s.cpp", JudgeStatus.TLE)
 
     def test_MLE_limit_in_src(self):
-        self.check_lj_json_status_poj_1000("memory-AC-1M-limit-2M.cpp", JudgeStatus.AC)
+        self.check_lj_json_status_poj_1000("memory-AC-1M-limit-5M.cpp", JudgeStatus.AC)
         self.check_lj_json_status_poj_1000("memory-MLE-1M-limit-1M.cpp", JudgeStatus.MLE)
         self.check_lj_json_status_poj_1000("memory-MLE-max-limit-1M.cpp", JudgeStatus.MLE)
+
+
+if __name__ == '__main__':
+    unittest.main()

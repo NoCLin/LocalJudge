@@ -1,15 +1,12 @@
 # -*-coding:utf-8-*-
-import os
-import sys
 import collections
 import logging
+import sys
 from pathlib import Path
+
 import colorful
 from prettytable import PrettyTable
 
-from lj import globalvar
-from lj.vendors.simplediff import diff
-from lj.vendors.human_bytes_converter import bytes2human
 from lj.judger import do_judge_run, do_compile, JudgeStatus, JudgeResultSet
 from lj.utils import (
     get_data_dir,
@@ -17,17 +14,19 @@ from lj.utils import (
     read_file,
     get_time_and_memory_limit,
     obj_json_dumps)
+from lj.vendors.human_bytes_converter import bytes2human
+from lj.vendors.simplediff import diff
 
 logger = logging.getLogger("lj")
 
 
 def explain_result(result, json=False):
     if json:
-        if sys.stdout_:
+        if hasattr(sys, "stdout_"):
             sys.stdout = sys.stdout_
         print(obj_json_dumps(result, indent=2))
         return
-    # TODO: 动态展示judge 结果
+    # TODO: 实时展示judge 结果
     # None 为不需要编译
     if result.compile.code is not None and result.compile.code != 0:
         print(colorful.red("Compile Error"))
@@ -128,7 +127,6 @@ def explain_result(result, json=False):
 
 
 def lj_judge(args):
-
     if args.json:
         # 临时屏蔽所有stdout输出
         # sys.stdout_ = sys.stdout
@@ -199,18 +197,16 @@ def lj_judge(args):
     dest_file = result.compile.params.get("dest")
     if dest_file:
         logger.debug("delete " + dest_file)
-        Path(dest_file).unlink()
+        try:
+            Path(dest_file).unlink()
+        except Exception as e:
+            logger.error("delete failed.")
+            logger.error(e)
 
     logger.info("result:\n%s" % obj_json_dumps(result, indent=2))
 
-    tmp_log_stream = globalvar.get("tmp_log_stream")
-    tmp_log_handler = globalvar.get("tmp_log_handler")
-
-    tmp_log_handler.flush()
-    result_log_file = os.path.join(result.compile.params["temp_dir"], result.compile.params["stem"] + ".log")
-    with open(result_log_file, "w") as f:
-        f.write(tmp_log_stream.getvalue())
     exit(0)
+
 
 if __name__ == '__main__':
     pass

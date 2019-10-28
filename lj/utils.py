@@ -1,5 +1,4 @@
 # -*-coding:utf-8-*-
-import os
 import subprocess
 import sys
 import time
@@ -7,6 +6,7 @@ import datetime
 import json
 import logging
 import re
+from functools import lru_cache
 
 from pathlib import Path
 
@@ -50,10 +50,12 @@ def get_all_temp_dir(src):
     return (src_path.parent / ".local_judge").glob(src_path.stem + "_*")
 
 
+# NOTE: 每次运行保证返回的值一致，确保maxsize 足够大，调用次数足够少
+@lru_cache(maxsize=100)
 def get_temp_dir(src) -> Path:
     src_path = Path(src)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    temp_dir = src_path.parent / ".local_judge" / (src_path.stem + "_" + timestamp)
+    temp_dir = src_path.parent / ".local_judge" / str(src_path.stem) / timestamp
     temp_dir.mkdir(parents=True, exist_ok=True)
     return temp_dir.resolve()
 
@@ -67,10 +69,9 @@ def get_now_ms():
     return (time.clock() if IS_WINDOWS else time.time()) * 1000
 
 
+# 在部分系统 会多一个"\n"，此处直接删除末尾所有的"\n"
 def ignore_last_newline(s):
-    if s[-1:] == '\n':  # 只移除最后一个\n
-        return s[:-1]
-    return s
+    return s.rstrip("\n")
 
 
 def rstrip_each_line(s):
@@ -125,15 +126,15 @@ def get_time_and_memory_limit(source_code):
     """
     :param source_code:
     :return: time_limit(ms) , memory_limit(bytes)
-
-    >>> code  = '/**' +  os.linesep
-    >>> code += ' * Time limit: 1000MS'+ os.linesep
-    >>> code += ' * memoryLimit：10000K'+ os.linesep
+    >>> from os import linesep
+    >>> code  = '/**' +  linesep
+    >>> code += ' * Time limit: 1000MS'+ linesep
+    >>> code += ' * memoryLimit：10000K'+ linesep
     >>> code += '**/'
     >>> get_time_and_memory_limit(code)
     (1000.0, 10240000)
-    >>> code  = '#time limit: 1s'+os.linesep
-    >>> code += '#memorylimit: 1m'+os.linesep
+    >>> code  = '#time limit: 1s' + linesep
+    >>> code += '#memorylimit: 1m' + linesep
     >>> get_time_and_memory_limit(code)
     (1000.0, 1048576)
     """
@@ -161,5 +162,5 @@ def get_memory_by_ps(pid):
 def get_memory_by_psutil(p):
     try:
         return p.memory_info().rss
-    except:
+    except Exception:
         return 0

@@ -5,7 +5,7 @@
       ".c"
     ],
     "dest": "${stem}${exe_if_win}",
-    "compile": "gcc ${src} -o ${dest}",
+    "compile": "gcc ${src} -o ${dest} -Wall -std=c99 -pipe",
     "run": "${dest}"
   },
   {
@@ -16,7 +16,7 @@
       ".cc"
     ],
     "dest": "${stem}${exe_if_win}",
-    "compile": "g++ ${src} -o ${dest}",
+    "compile": "g++ ${src} -o ${dest} -Wall -std=c++14 -pipe",
     "run": "${dest}"
   },
   {
@@ -25,7 +25,7 @@
       ".py"
     ],
     "dest": "${stem}.pyc",
-    "compile": "python -c \"import py_compile; py_compile.compile(r'${src}',r'${dest}')\"",
+    "compile": "python -c \"import py_compile; py_compile.compile('${src}','${dest}')\"",
     "run": "python ${dest}"
   },
   {
