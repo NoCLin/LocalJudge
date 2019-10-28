@@ -25,7 +25,7 @@
       ".py"
     ],
     "dest": "${stem}.pyc",
-    "compile": "python -c \"import py_compile; py_compile.compile('${src}','${dest}')\"",
+    "compile": "python -c \"import py_compile; py_compile.compile(r'${src}',r'${dest}')\"",
     "run": "python ${dest}"
   },
   {
