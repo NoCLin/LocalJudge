@@ -33,8 +33,8 @@
     "extensions": [
       ".java"
     ],
-    "dest": "Main.class",
-    "compile": "javac -J-Xms32m -J-Xmx256m Main.java",
-    "run": "java Main"
+    "dest": "${temp_dir}/Main.class",
+    "compile": "javac -J-Xms32m -J-Xmx256m ${src} -d ${temp_dir}",
+    "run": "java -classpath ${temp_dir} Main"
   }
 ]

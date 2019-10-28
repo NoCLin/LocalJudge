@@ -28,7 +28,8 @@ def main(argv=None):
     # 指定stdio文件，避免测试时新建重复文件，必须同时存在
     parser.add_argument("-i", "--in_file", help="in file", )
     parser.add_argument("-eo", "--eout_file", help="expected_out file")
-
+    # TODO: 改成指定目录
+    # 废弃-i -eo 改成 -d 指定数据目录
     parser.add_argument("-t", "--time_limit", type=int, default=None, help="time limit (ms)")
     parser.add_argument("-m", "--memory_limit", type=int, default=None, help="memory limit (MB)")
     parser.add_argument("-d", "--debug", dest="debug", action="store_true", help="debug mode")
