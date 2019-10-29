@@ -1,7 +1,13 @@
 # Local Judge
 
+![](https://github.com/NoCLin/LocalJudge/workflows/macOS/badge.svg)
+![](https://github.com/NoCLin/LocalJudge/workflows/Windows/badge.svg)
+![](https://github.com/NoCLin/LocalJudge/workflows/Linux/badge.svg)
 
-## What's this?
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/LocalJudge)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/LocalJudge)
+![PyPI](https://img.shields.io/pypi/v/LocalJudge)
+![GitHub](https://img.shields.io/github/license/NoCLin/LocalJudge)
 
 Local Judge 类似于 Online Judge，但因其运行在本地，故命名为 **Local** Judge。
 
@@ -10,24 +16,29 @@ Local Judge 类似于 Online Judge，但因其运行在本地，故命名为 **L
 
 Features：
 
-- 评测无需排队
-- 管理多组测试用例
-- 自动输入多组数据
-- 自动对比输出结果
-- 保留评测日志[未完成]
+- 本地评测无需排队
+- **在本地文件中管理题集**
+- 自动输入多组数据并对比结果
+- 提供一键编译运行命令
+
+    刷题时，由于每个项目只能指定一个入口，每道题目都需要新建一个项目很繁琐，
+    LocalJudge提供`lj run hello.c` 或 `ljr hello.c`直接编译运行，
+    即可在IDE的一个项目里存放多个带有main函数的源文件。
+
+- 保留每次评测历史日志
 - OJ 出题人验题
-
-> 刷题时，由于每个项目只能指定一个入口，每道题目都需要新建一个项目很繁琐，
-> LocalJudge提供`lj run hello.c` 或 `ljr hello.c`直接编译运行，
->即可在IDE的一个项目里存放多个带有main函数的源文件了。
-
-它的劣势之一是OJ实战不能使用=_=。
+- 语言与编译命令可扩展
+- **劣势**: **OJ实战不能使用。**
 
 ## 安装
 
-```bash
-pip install --upgrade LocalJudge
-```
+稳定版本:
+
+`pip install --upgrade LocalJudge`
+
+开发版本:
+
+`pip install https://github.com/NoCLin/LocalJudge/archive/dev.zip`
 
 > 请确保您的Python版本 >= 3.5
 
@@ -69,9 +80,7 @@ pip install --upgrade LocalJudge
 当然，也可以使用 `lj run poj-1000.c` 或 `ljr poj-1000.c` 手动运行。
 
 
-> 请注意：由与OJ限制，java源文件名必须为Main.java，因此请将每个项目放在独立的文件夹里。
-
-> 由于IDE会报错，Java源文件无法和其他语言保持一样的文件结构(如文件夹下同时存在poj-1000.java、poj-1001.java)。
+> 请注意：java源文件名不为`Main.java`时，请不要写`public class Main`。
 
 ## 编译器配置
 
@@ -82,16 +91,34 @@ ${src} 将会被预定义变量**src**替换，同理，可使用的预定义变
 ```
 src : 源文件路径
 dest: 可执行文件路径
+temp_dir: 临时文件夹
 stem: 源文件名前缀
+windows_flag: 如果为Windows系统，值为"-D_WINDOWS"，否则为""
 exe_if_win: 如果为Windows系统，值为".exe"，否则为""
 ......
 ```
+
+## 时间与内存限制
+
+内容中包含以下内容即可设置时间与内存限制：
+
+```
+
+```
+
+## 其他提示
+
+`aaa.c` `aaa@fast.c` `aaa@slow.c` `aaa@xxx.c` 均使用 aaa的
+数据，无需复制多份数据，方便管理多份解答。
 
 ## 其他命令
 
 ```
 # 开启DEBUG模式
-lj -d poj-1000.c
+lj --dubug poj-1000.c
+
+# 使用指定的数据文件夹
+lj -d xxx poj-1000.c
 
 # 以JSON格式输出
 lj --json poj-1000.c

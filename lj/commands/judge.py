@@ -30,9 +30,11 @@ def explain_result(result, json=False):
     # TODO: 实时展示judge 结果
     # None 为不需要编译
     if result.compile.code is not None and result.compile.code != 0:
-        print(colorful.red("Compile Error"))
+
         print(obj_json_dumps(result.compile, indent=2))
-        exit()
+        print(colorful.red("Compile Error"))
+        print(result.compile.stdout)
+        return
     if len(result.cases) == 0:
         print("no cases.")
         return
@@ -147,28 +149,17 @@ def lj_judge(args):
     tl, ml = (get_time_and_memory_limit(source_code))
 
     result.time_limit = args.time_limit if args.time_limit else tl
-    result.memory_limit = args.memory_limit if args.memory_limit else ml
+    result.memory_limit = args.memory_limit * 1024 * 1024 if args.memory_limit else ml
 
-    if args.in_file and args.eout_file:
-        judge_cases_group = [{
-            "in": args.in_file,
-            "eout": args.eout_file,
-            "name": "CommandLine"
-        }]
-    else:
-        if not args.in_file and not args.eout_file:
-            data_dir = get_data_dir(src)
-            case_indexes = get_cases(data_dir) if case_index is None else [case_index]
-            judge_cases_group = [
-                {
-                    "in": str(data_dir / (i + ".in")),
-                    "eout": str(data_dir / (i + ".out")),
-                    "name": i
-                } for i in case_indexes
-            ]
-        else:
-            print("in_file and eout_file are required.")
-            exit()
+    data_dir = get_data_dir(src, args.data_dir)
+    case_indexes = get_cases(data_dir) if case_index is None else [case_index]
+    judge_cases_group = [
+        {
+            "in": str(data_dir / (i + ".in")),
+            "eout": str(data_dir / (i + ".out")),
+            "name": i
+        } for i in case_indexes
+    ]
 
     logger.debug("cases (%d): %s" % (len(judge_cases_group), judge_cases_group))
 

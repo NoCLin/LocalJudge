@@ -37,9 +37,11 @@ def natural_sort(l):
     return sorted(l, key=alphanum_key)
 
 
-def get_data_dir(src) -> Path:
+def get_data_dir(src, overwrite=None) -> Path:
+    if overwrite:
+        return Path(overwrite).resolve()
     src_path = Path(src)
-    stem = str(src_path.stem)
+    stem = str(src_path.stem).split("@")[0]
     return (src_path.parent / stem).resolve()
 
 
@@ -49,7 +51,7 @@ def get_all_temp_dir(src):
 
 
 # NOTE: 每次运行保证返回的值一致，确保maxsize 足够大，调用次数足够少
-@lru_cache(maxsize=100)
+@lru_cache(maxsize=10000)
 def get_temp_dir(src) -> Path:
     src_path = Path(src)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -64,7 +66,7 @@ def get_cases(data_dir):
 
 
 def get_now_ms():
-    return (time.clock() if IS_WINDOWS else time.time()) * 1000
+    return time.perf_counter() * 1000
 
 
 # 在部分系统 会多一个"\n"，此处直接删除末尾所有的"\n"

@@ -1,6 +1,7 @@
 # -*-coding:utf-8-*-
 
 import logging
+import os
 import sys
 from pathlib import Path
 import argparse
@@ -10,6 +11,7 @@ from lj.commands.create import lj_create
 from lj.commands.judge import lj_judge
 from lj.commands.show import lj_show
 from lj.commands.run import lj_compile_and_run
+from lj.commands.docker import lj_docker
 from lj.utils import print_and_exit, get_temp_dir
 
 log_format = '%(asctime)s [%(filename)s:%(lineno)d] [%(levelname)s] %(message)s'
@@ -25,17 +27,17 @@ def main(argv=None):
     parser.add_argument("command", nargs="?", default="judge", help="command")
     parser.add_argument('src', help="source file")
     parser.add_argument("-c", "--case", help="index of test case")
-    # 指定stdio文件，避免测试时新建重复文件，必须同时存在
-    parser.add_argument("-i", "--in_file", help="in file", )
-    parser.add_argument("-eo", "--eout_file", help="expected_out file")
-    # TODO: 改成指定目录
-    # 废弃-i -eo 改成 -d 指定数据目录
+    parser.add_argument("-d", "--data_dir", help="data directory")
     parser.add_argument("-t", "--time_limit", type=int, default=None, help="time limit (ms)")
     parser.add_argument("-m", "--memory_limit", type=int, default=None, help="memory limit (MB)")
-    parser.add_argument("-d", "--debug", dest="debug", action="store_true", help="debug mode")
+    parser.add_argument("--debug", dest="debug", action="store_true", help="debug mode")
     parser.add_argument("--json", dest="json", action="store_true", help="output as json")
 
     args = parser.parse_args()
+
+    if args.src == "docker" and args.command == "judge":
+        lj_docker(args)
+        return
 
     if args.debug:
         logger.setLevel(logging.DEBUG)
@@ -63,7 +65,7 @@ def main(argv=None):
         "clean": lj_clean,
         "create": lj_create,
         "show": lj_show,
-        "run": lj_compile_and_run
+        "run": lj_compile_and_run,
     }.get(args.command, None)
 
     if not sub_func:
@@ -73,12 +75,13 @@ def main(argv=None):
 
     tmp_dir = get_temp_dir(args.src)
     logger.debug(Path(args.src).stem)
-    log_file = tmp_dir / ("%s.log" % Path(args.src).stem)
+    if 'LJ_TEST' not in os.environ:
+        log_file = os.path.join(str(tmp_dir), "lj.log")
+        log_file_handler = logging.FileHandler(log_file)
+        log_file_handler.setFormatter(logging.Formatter(log_format))
+        logger.addHandler(log_file_handler)
+        logger.debug("logging path: %s" % log_file)
 
-    log_file_handler = logging.FileHandler(str(log_file))
-    log_file_handler.setFormatter(logging.Formatter(log_format))
-    logger.addHandler(log_file_handler)
-    logger.debug("logging path: %s" % log_file)
     logger.debug("args: %s" % args)
     sub_func(args)
 

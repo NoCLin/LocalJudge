@@ -1,0 +1,8 @@
+*
+!docker
+!lj
+!tests
+!ci.py
+!setup.cfg
+!setup.py
+!README.md

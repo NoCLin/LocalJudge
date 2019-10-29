@@ -5,7 +5,7 @@
       ".c"
     ],
     "dest": "${stem}${exe_if_win}",
-    "compile": "gcc ${src} -o ${dest} -Wall -std=c99 -pipe",
+    "compile": "gcc ${src} -o ${dest} -Wall -std=c99 -pipe ${flag_win} -lm",
     "run": "${dest}"
   },
   {
@@ -16,7 +16,7 @@
       ".cc"
     ],
     "dest": "${stem}${exe_if_win}",
-    "compile": "g++ ${src} -o ${dest} -Wall -std=c++14 -pipe",
+    "compile": "g++ ${src} -o ${dest} -Wall -std=c++14 -pipe ${flag_win} -lm",
     "run": "${dest}"
   },
   {

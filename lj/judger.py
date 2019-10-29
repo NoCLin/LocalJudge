@@ -120,6 +120,7 @@ def do_compile(src) -> (int, str):
         "temp_dir": str(temp_dir),
         "stem": src_path.stem,
         "dest": None,
+        "flag_win": "-D_WINDOWS" if IS_WINDOWS else "",
         "exe_if_win": ".exe" if IS_WINDOWS else ""
     }
     # 此时文件还不存在
@@ -221,6 +222,7 @@ def do_judge_run(command, stdin="", expected_out="", time_limit=None, memory_lim
         p.kill()
         tle_kill = True
     except Exception as e:
+        p.kill()
         logger.error(e)
         traceback.print_exc()
 

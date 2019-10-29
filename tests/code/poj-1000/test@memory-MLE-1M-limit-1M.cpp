@@ -1,5 +1,10 @@
 #include <iostream>
+#ifdef _WINDOWS
+#include <windows.h>
+#else
 #include <unistd.h>
+#define Sleep(x) usleep((x)*1000)
+#endif
 using namespace std;
 /**
  * Memory Limit: 1M
@@ -12,6 +17,6 @@ int main() {
   fill(p, p + 1024 * 1024, 1);
   cin >> n >> m;
   cout << n + m << endl;
-  sleep(1);
+  Sleep(1000);
   return 0;
 }
