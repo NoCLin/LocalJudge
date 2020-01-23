@@ -39,8 +39,8 @@ setup(name="LocalJudge",
       },
       entry_points={
           'console_scripts': [
-              'lj = lj:lj_main',
-              'ljc = lj:ljc_main',
-              'ljr = lj:ljr_main',
+              'lj = lj.lj:lj_main',
+              'ljc = lj.lj:ljc_main',
+              'ljr = lj.lj:ljr_main',
           ]},
       )
