@@ -38,7 +38,7 @@ jobs:
 
       - name: Publish to Registry
         uses: elgohr/Publish-Docker-Github-Action@master
-        if: {{github.ref}} == "master"
+        if: "{{github.ref}} == 'master'"
         with:
           name: ${{ github.repository }}/LocalJudge
           username: ${{ GITHUB_ACTOR }}
