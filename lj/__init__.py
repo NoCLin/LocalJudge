@@ -8,6 +8,8 @@ from fire import Fire
 from lj.commands.clean import lj_clean
 from lj.commands.create import lj_create
 from lj.commands.docker import lj_docker
+from lj.commands.gin import lj_generator_in
+from lj.commands.gout import lj_generator_out
 from lj.commands.judge import lj_judge
 from lj.commands.run import lj_compile_and_run
 from lj.commands.show import lj_show
@@ -35,6 +37,8 @@ LocalJudge.show = lj_show
 LocalJudge.clean = lj_clean
 LocalJudge.docker = lj_docker
 LocalJudge.run = lj_compile_and_run
+LocalJudge.gin = lj_generator_in
+LocalJudge.gout = lj_generator_out
 
 
 def ljc_main():
