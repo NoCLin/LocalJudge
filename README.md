@@ -1,9 +1,6 @@
 # Local Judge
 
-![](https://github.com/NoCLin/LocalJudge/workflows/macOS/badge.svg)
-![](https://github.com/NoCLin/LocalJudge/workflows/Windows/badge.svg)
-![](https://github.com/NoCLin/LocalJudge/workflows/Linux/badge.svg)
-
+![](https://github.com/NoCLin/LocalJudge/workflows/Python%20package/badge.svg)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/LocalJudge)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/LocalJudge)
 ![PyPI](https://img.shields.io/pypi/v/LocalJudge)

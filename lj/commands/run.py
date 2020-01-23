@@ -1,5 +1,4 @@
 # -*-coding:utf-8-*-
-import argparse
 import logging
 import shlex
 import shutil
@@ -8,14 +7,25 @@ import sys
 
 import colorful
 
+from lj.common import obj_json_dumps, IS_WINDOWS, try_get_file, get_temp_dir
 from lj.judger import do_compile
-from lj.utils import obj_json_dumps, IS_WINDOWS
 
 logger = logging.getLogger("lj")
 
 
-def lj_compile_and_run(args):
-    compile_result = do_compile(args.src)
+# noinspection PyUnusedLocal
+def lj_compile_and_run(self, src, additional_compile_flags=""):
+    """
+    directly compile and run with source file.
+    :param self:
+    :param src:
+    :param additional_compile_flags:
+    :return:
+    """
+    tmp_dir = get_temp_dir(src)
+
+    src = try_get_file(src)
+    compile_result = do_compile(src, additional_compile_flags)
     print("compile command: %s" % compile_result.command)
     if compile_result.code == 0:
         run_with_console(compile_result.runnable)
@@ -41,14 +51,3 @@ def run_with_console(command):
     print()
     print("-" * 20)
     print("Process Exit Code: %s" % (str(p.returncode)))
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Local Judge Runner")
-    parser.add_argument("src", help="source file")
-    args = parser.parse_args()
-    lj_compile_and_run(args)
-
-
-if __name__ == "__main__":
-    main()

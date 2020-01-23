@@ -1,26 +1,24 @@
 # -*-coding:utf-8-*-
 
 
+import json
+import logging
 import os
 import shlex
-import json
 import subprocess
 import tempfile
 import threading
 import traceback
-import logging
-
 from pathlib import Path
 from string import Template
 
 import psutil
 
-from lj.utils import (get_now_ms,
-                      print_and_exit,
-                      equals_ignore_presentation_error,
-                      ignore_last_newline,
-                      get_temp_dir,
-                      IS_WINDOWS, read_file, get_memory_by_psutil)
+from lj.common import (get_now_ms,
+                       print_and_exit,
+                       equals_ignore_presentation_error,
+                       ignore_last_newline,
+                       IS_WINDOWS, read_file, get_memory_by_psutil, shorten_str, get_temp_dir)
 
 logger = logging.getLogger("lj")
 
@@ -75,7 +73,6 @@ class JudgeResult:
 
 
 def load_options():
-    logger.debug("loading options")
     file = Path.home() / ".localjudge.json"
     if file.exists():
         try:
@@ -103,15 +100,18 @@ def get_lang_options_from_suffix(suffix):
         exit()
 
 
-def do_compile(src) -> (int, str):
+def do_compile(src, additional_compile_flags=None) -> (int, str):
     src_path = Path(src).resolve()
-    temp_dir = get_temp_dir(src)
+    temp_dir = get_temp_dir(src_path)
     lang_options = get_lang_options_from_suffix(src_path.suffix)
     logger.debug("language options:")
     logger.debug(lang_options)
 
     compile_result = CompileResult()
     tpl_compile = lang_options.get("compile")
+    if additional_compile_flags:
+        tpl_compile += " " + additional_compile_flags
+
     tpl_runnable = lang_options.get("run")
     tpl_dest = lang_options.get("dest")
 
@@ -123,7 +123,7 @@ def do_compile(src) -> (int, str):
         "flag_win": "-D_WINDOWS" if IS_WINDOWS else "",
         "exe_if_win": ".exe" if IS_WINDOWS else ""
     }
-    # 此时文件还不存在
+    # 此时文件还不存在，不要使用pathlib
     params["dest"] = os.path.abspath(str(temp_dir / Template(tpl_dest).substitute(params)))
 
     if tpl_compile:
@@ -146,14 +146,14 @@ def do_compile(src) -> (int, str):
 def do_judge_run(command, stdin="", expected_out="", time_limit=None, memory_limit=None,
                  case_index=None):
     logger.debug("run command: %s" % command)
-    logger.debug("stdin: %s" % stdin)
-    logger.debug("expected_out: %s" % expected_out)
+    logger.debug("stdin: %s" % shorten_str(stdin))
+    logger.debug("expected_out: %s" % shorten_str(expected_out))
     logger.debug("time limit: %s" % time_limit)
     logger.debug("memory limit: %s" % memory_limit)
 
     result = JudgeResult()
     result.command = command
-    result.code = -1
+    result.code = None
     result.input = stdin
     result.output = ""
     result.expected_output = expected_out
@@ -235,7 +235,7 @@ def do_judge_run(command, stdin="", expected_out="", time_limit=None, memory_lim
 
     t3 = get_now_ms()
     logger.debug("t3: %d t3-t2: %d" % (t3, t3 - t2))
-    logger.debug("stdout: %s" % result.output)
+    logger.debug("stdout: %s" % shorten_str(result.output))
     logger.debug("code: %s" % result.code)
 
     result.time_used = t3 - t2

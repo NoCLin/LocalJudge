@@ -1,15 +1,13 @@
-import io
+import json
 import os
 import unittest
-from contextlib import redirect_stdout
-from subprocess import CalledProcessError, check_output, PIPE, STDOUT, Popen
 from pathlib import Path
-import json
+from subprocess import CalledProcessError, check_output, PIPE, STDOUT, Popen
 
 import pytest
 
+from lj.common import TEMP_DIR_NAME
 from lj.judger import JudgeStatus
-from lj import lj
 
 CODE_DIR = (Path(__file__).parent / "code").resolve()
 POJ_1000_DIR = CODE_DIR / "poj-1000"
@@ -30,10 +28,10 @@ def getstatusoutput(cmd, cwd):
 
 
 def capture_lj_command_output(commands):
-    f = io.StringIO()
-    with redirect_stdout(f):
-        lj.main(commands)
-    return f.getvalue()
+    p = Popen(commands, universal_newlines=True,
+              stdin=PIPE, stdout=PIPE, cwd=str(POJ_1000_DIR))
+    stdout, _ = p.communicate()
+    return stdout
 
 
 class CommandLineTest(unittest.TestCase):
@@ -62,7 +60,7 @@ class CommandLineTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        tmp = POJ_1000_DIR / ".local_judge"
+        tmp = POJ_1000_DIR / TEMP_DIR_NAME
         if tmp.is_dir():
             directory = str(tmp)
             print("removing " + directory)
@@ -86,7 +84,7 @@ class CommandLineTest(unittest.TestCase):
         self.check_poj_1000(data)
 
     def test_lj_json(self):
-        data = capture_lj_command_output(["lj", "--json", str(POJ_1000_DIR / "poj-1000.cpp")])
+        data = capture_lj_command_output(["lj", str(POJ_1000_DIR / "poj-1000.cpp"), "--json", ])
         self.check_poj_1000_json(data)
 
     def test_lj_run(self):
@@ -109,23 +107,23 @@ class CommandLineTest(unittest.TestCase):
 
     def test_TLE_limit_in_src(self):
         # 详细测试在 judge_status_test.py 中
-        commands = ["lj", "--json", str(POJ_1000_DIR / "test@time-AC-1s-limit-2s.cpp")]
+        commands = ["lj", str(POJ_1000_DIR / "test@time-AC-1s-limit-2s.cpp"), "--json", ]
         self.check_lj_json_first_status(capture_lj_command_output(commands), JudgeStatus.AC)
 
-        commands = ["lj", "--json", str(POJ_1000_DIR / "test@time-TLE-1s-limit-1s.cpp")]
+        commands = ["lj", str(POJ_1000_DIR / "test@time-TLE-1s-limit-1s.cpp"), "--json", ]
         self.check_lj_json_first_status(capture_lj_command_output(commands), JudgeStatus.TLE)
 
-        commands = ["lj", "--json", str(POJ_1000_DIR / "test@time-TLE-endless-limit-1s.cpp")]
+        commands = ["lj", str(POJ_1000_DIR / "test@time-TLE-endless-limit-1s.cpp"), "--json", ]
         self.check_lj_json_first_status(capture_lj_command_output(commands), JudgeStatus.TLE)
 
     def test_MLE_limit_in_src(self):
-        commands = ["lj", "--json", str(POJ_1000_DIR / "test@memory-AC-1M-limit-6M.cpp")]
+        commands = ["lj", str(POJ_1000_DIR / "test@memory-AC-1M-limit-6M.cpp"), "--json", ]
         self.check_lj_json_first_status(capture_lj_command_output(commands), JudgeStatus.AC)
 
-        commands = ["lj", "--json", str(POJ_1000_DIR / "test@memory-MLE-1M-limit-1M.cpp")]
+        commands = ["lj", str(POJ_1000_DIR / "test@memory-MLE-1M-limit-1M.cpp"), "--json", ]
         self.check_lj_json_first_status(capture_lj_command_output(commands), JudgeStatus.MLE)
 
-        commands = ["lj", "--json", str(POJ_1000_DIR / "test@memory-MLE-max-limit-1M.cpp")]
+        commands = ["lj", str(POJ_1000_DIR / "test@memory-MLE-max-limit-1M.cpp"), "--json", ]
         self.check_lj_json_first_status(capture_lj_command_output(commands), JudgeStatus.MLE)
 
 

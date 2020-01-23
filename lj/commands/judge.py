@@ -1,18 +1,20 @@
 # -*-coding:utf-8-*-
 import collections
 import logging
+import os
+import sys
 import warnings
 from pathlib import Path
 
 import colorful
 
-from lj.judger import do_judge_run, do_compile, JudgeStatus, JudgeResultSet
-from lj.utils import (
-    get_data_dir,
-    get_cases,
-    read_file,
+from lj.common import (
+    LOG_FORMAT,
+    get_data_dir, get_cases, get_temp_dir,
+    read_file, try_get_file,
     get_time_and_memory_limit,
-    obj_json_dumps)
+    obj_json_dumps, shorten_result, )
+from lj.judger import do_judge_run, do_compile, JudgeStatus, JudgeResultSet
 from lj.vendors.human_bytes_converter import bytes2human
 from lj.vendors.simplediff import diff
 
@@ -25,12 +27,11 @@ with warnings.catch_warnings():
 
 def explain_result(result, json=False):
     if json:
-        print(obj_json_dumps(result, indent=2))
+        print(obj_json_dumps(shorten_result(result), indent=2))
         return
     # TODO: 实时展示judge 结果
     # None 为不需要编译
     if result.compile.code is not None and result.compile.code != 0:
-
         print(obj_json_dumps(result.compile, indent=2))
         print(colorful.red("Compile Error"))
         print(result.compile.stdout)
@@ -107,7 +108,7 @@ def explain_result(result, json=False):
                   .format(c=colorful,
                           index=case.case_index,
                           status=case.status))
-
+            # FIXME: shorten
             print("stdin:")
             print(case.input)
             colored_diff_str = ""
@@ -129,9 +130,39 @@ def explain_result(result, json=False):
             print(colored_diff_str.format(c=colorful))
 
 
-def lj_judge(args):
-    src = args.src
-    case_index = args.case
+# noinspection PyUnusedLocal
+def lj_judge(self,
+             src,
+             case_index=None,
+             json=False,
+             time_limit=None,
+             memory_limit=None,
+             data_dir=None):
+    """
+    local judge source file.
+    :param self:
+    :param src:
+    :param case_index:
+    :param json:
+    :param time_limit:
+    :param memory_limit:
+    :param data_dir:
+    :return:
+    """
+
+    tmp_dir = get_temp_dir(src)
+    logger.debug("Temp Dir is %s, exists: %s " % (tmp_dir, tmp_dir.exists()))
+
+    log_file = os.path.join(str(tmp_dir), "lj.log")
+    logger.debug("logging path: %s" % log_file)
+
+    log_file_handler = logging.FileHandler(log_file)
+    log_file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    logger.addHandler(log_file_handler)
+
+    logger.debug("args: %s" % sys.argv)
+    src = try_get_file(Path(src), not_exists_ok=False)
+    logger.debug("src is: %s" % src)
 
     result = JudgeResultSet()
     result.time_limit = None
@@ -139,7 +170,7 @@ def lj_judge(args):
     result.compile = do_compile(src)
 
     if result.compile.code is not None and result.compile.code != 0:
-        explain_result(result, args.json)
+        explain_result(result, json)
         return
 
     source_code = read_file(result.compile.params["src"])
@@ -148,10 +179,10 @@ def lj_judge(args):
 
     tl, ml = (get_time_and_memory_limit(source_code))
 
-    result.time_limit = args.time_limit if args.time_limit else tl
-    result.memory_limit = args.memory_limit * 1024 * 1024 if args.memory_limit else ml
+    result.time_limit = time_limit if time_limit else tl
+    result.memory_limit = memory_limit * 1024 * 1024 if memory_limit else ml
 
-    data_dir = get_data_dir(src, args.data_dir)
+    data_dir = get_data_dir(src, data_dir)
     case_indexes = get_cases(data_dir) if case_index is None else [case_index]
     judge_cases_group = [
         {
@@ -178,7 +209,7 @@ def lj_judge(args):
 
         result.cases.append(case_result)
 
-    explain_result(result, args.json)
+    explain_result(result, json)
 
     dest_file = result.compile.params.get("dest")
     if dest_file:
@@ -189,7 +220,7 @@ def lj_judge(args):
             logger.error("delete failed.")
             logger.error(e)
 
-    logger.info("result:\n%s" % obj_json_dumps(result, indent=2))
+    logger.info("result:\n%s" % obj_json_dumps(shorten_result(result), indent=2))
 
 
 if __name__ == '__main__':

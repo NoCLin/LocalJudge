@@ -4,7 +4,13 @@ import subprocess
 import sys
 
 
-def lj_docker(args):
+# noinspection PyUnusedLocal
+def lj_docker(self):
+    """
+    enter docker environment.
+    :param self:
+    :return:
+    """
     code_dir = os.getcwd()
     commands = ["docker", "run",
                 "-it", "--rm",

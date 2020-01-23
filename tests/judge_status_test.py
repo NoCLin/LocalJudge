@@ -1,11 +1,10 @@
 import os
+import unittest
+from pathlib import Path
 
 import pytest
 
 from lj.judger import do_compile, do_judge_run, JudgeStatus
-
-import unittest
-from pathlib import Path
 
 CODE_DIR = (Path(__file__).parent / "code").resolve()
 POJ_1000_DIR = CODE_DIR / "poj-1000"

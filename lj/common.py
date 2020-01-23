@@ -1,13 +1,13 @@
 # -*-coding:utf-8-*-
-import subprocess
-import sys
-import time
+import copy
 import datetime
 import json
 import logging
 import re
+import subprocess
+import sys
+import time
 from functools import lru_cache
-
 from pathlib import Path
 
 import jsonpickle
@@ -19,6 +19,7 @@ logger = logging.getLogger("lj")
 IS_WINDOWS = sys.platform == "win32"
 IS_MACOS = sys.platform == "darwin"
 IS_LINUX = sys.platform == "linux"
+LOG_FORMAT = '%(asctime)s [%(filename)s:%(lineno)d] [%(levelname)s] %(message)s'
 
 
 def print_and_exit(code, text):
@@ -37,6 +38,22 @@ def natural_sort(l):
     return sorted(l, key=alphanum_key)
 
 
+# 尝试获取文件，可忽略后缀
+def try_get_file(file, not_exists_ok=False):
+    file = Path(str(file))
+    if file.is_dir():
+        # 自动搜索后缀，忽略 .class 等非源文件
+        ignore_extensions = [".class", ".exe", ".pyc"]
+        file_list = [i for i in file.parent.glob(file.stem + ".*") if i.suffix not in ignore_extensions]
+        if len(file_list):
+            return file_list[0]
+        else:
+            print_and_exit(-1, "自动识别后缀失败，文件不存在")
+    if not_exists_ok is False and not file.is_file():
+        print_and_exit(-1, "file `%s` does not exist." % file)
+    return file
+
+
 def get_data_dir(src, overwrite=None) -> Path:
     if overwrite:
         return Path(overwrite).resolve()
@@ -45,17 +62,15 @@ def get_data_dir(src, overwrite=None) -> Path:
     return (src_path.parent / stem).resolve()
 
 
-def get_all_temp_dir(src):
-    src_path = Path(src)
-    return (src_path.parent / ".local_judge").glob(src_path.stem + "_*")
+TEMP_DIR_NAME = ".lj"
 
 
-# NOTE: 每次运行保证返回的值一致，确保maxsize 足够大，调用次数足够少
+# NOTE: 每次运行保证相同参数的返回值一致，确保maxsize 足够大，调用次数足够少
 @lru_cache(maxsize=10000)
 def get_temp_dir(src) -> Path:
     src_path = Path(src)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    temp_dir = src_path.parent / ".local_judge" / str(src_path.stem) / timestamp
+    temp_dir = src_path.parent / TEMP_DIR_NAME / str(src_path.stem) / timestamp
     temp_dir.mkdir(parents=True, exist_ok=True)
     return temp_dir.resolve()
 
@@ -85,6 +100,24 @@ def equals_ignore_presentation_error(str1, str2):
 def read_file(file, mode='r'):
     with open(file, mode=mode) as f:
         return f.read()
+
+
+def shorten_str(_str, max_len=100):
+    return _str[:max_len] + "..." if len(_str) > max_len else _str
+
+
+def shorten_case(c):
+    c.input = shorten_str(c.input)
+    c.output = shorten_str(c.output)
+    c.expected_output = shorten_str(c.expected_output)
+    return c
+
+
+def shorten_result(result):
+    o = copy.deepcopy(result)
+    for c in o.cases:
+        c = shorten_case(c)
+    return o
 
 
 def obj_json_dumps(obj, indent=None):

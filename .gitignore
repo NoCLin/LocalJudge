@@ -155,7 +155,7 @@ dmypy.json
 .pyre/
 
 
-**/.local_judge/**
+**/.lj/**
 windows_dist
 *.egg-info
 MANIFEST.in
